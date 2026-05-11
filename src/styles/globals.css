@@ -1,0 +1,115 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  /* Hide scrollbar when not scrolling */
+  html {
+    overflow-y: scroll;
+    scrollbar-width: none; /* Firefox */
+    scroll-behavior: smooth;
+  }
+
+  html::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
+  }
+
+  /* Custom checkbox styling */
+  input[type="checkbox"] {
+    accent-color: #0060D2;
+  }
+}
+
+@layer components {
+  .container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Centralized paragraph styling for sections */
+  .section-paragraph {
+    @apply text-sm font-light leading-relaxed sm:text-xs sm:leading-[1.61];
+  }
+
+  /* Centralized mobile padding for sections */
+  .mobile-section-padding {
+    @apply px-8 sm:px-6 lg:px-8;
+  }
+
+  /* Footer padding - same as section padding for consistency */
+  .footer-padding {
+    @apply px-8 sm:px-6 lg:px-8;
+  }
+
+  /* Centralized body text - use for card descriptions, FAQ answers, review content, etc. */
+  .body-text {
+    @apply text-xs font-light leading-[1.4] tracking-normal;
+  }
+
+  /* Feature card variant - body-text with dark color */
+  .feature-description {
+    @apply text-xs font-light leading-[1.4] tracking-normal text-navy;
+  }
+
+  /* Fleet section gradient background - desktop only */
+  .fleet-section {
+    background: white;
+  }
+
+  @media (min-width: 640px) {
+    .fleet-section {
+      background: radial-gradient(65.36% 57.7% at 50% 57.7%, rgba(251, 251, 251, 0) 0%, #FBFBFB 100%);
+    }
+  }
+}
+
+@keyframes subtle-shake {
+  0%, 85%, 100% { transform: translateX(0); }
+  88% { transform: translateX(-1.5px); }
+  91% { transform: translateX(1.5px); }
+  94% { transform: translateX(-1.5px); }
+  97% { transform: translateX(1.5px); }
+}
+
+@layer utilities {
+  .animate-subtle-shake {
+    animation: subtle-shake 3s ease-in-out infinite;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Print styles — hide non-essential UI, show only page content */
+@media print {
+  header, footer, nav,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+}

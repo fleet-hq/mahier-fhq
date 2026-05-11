@@ -1,0 +1,10 @@
+export * from './hero';
+export * from './fleet';
+export * from './features';
+export * from './about';
+export * from './testimonials';
+export * from './faq';
+export * from './cta';
+export * from './booking';
+export { PolicySections } from './policy-sections';
+export { RentalAgreementPreview } from './rental-agreement-preview';

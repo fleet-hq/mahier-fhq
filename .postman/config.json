@@ -1,0 +1,20 @@
+{
+  "workspace": {
+    "id": "83a0dc13-aca5-432e-8d43-cf388120c025"
+  },
+  "entities": {
+    "collections": [
+      "../postman/collections/FleetHq.postman_collection.json",
+      "../postman/collections/Bonzah APIs v3.3.postman_collection.json",
+      "../postman/collections/Car Rental.postman_collection.json"
+    ],
+    "environments": [
+      "../postman/environments/Production.postman_environment.json",
+      "../postman/environments/Bonzah - Sandbox.postman_environment.json",
+      "../postman/environments/Beta.postman_environment.json"
+    ],
+    "specs": [],
+    "flows": [],
+    "globals": []
+  }
+}
