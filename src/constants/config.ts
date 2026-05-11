@@ -1,4 +1,4 @@
 export const APP_CONFIG = {
-  name: process.env.NEXT_PUBLIC_APP_NAME || 'Scudo Xpress',
+  name: process.env.NEXT_PUBLIC_APP_NAME || 'Maheir Car Rental',
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 } as const;
