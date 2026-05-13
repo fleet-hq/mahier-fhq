@@ -1,7 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { LocationSelector } from './location-selector';
 import { todayLocalISODate } from '@/lib/utils';
 import { DatePicker, TimePicker } from '@/components/ui';
@@ -179,6 +180,29 @@ export function BookingSidebar(props: BookingSidebarProps) {
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [invoiceImageErrors, setInvoiceImageErrors] = useState<Set<number>>(new Set());
 
+  // Lightbox state for the vehicle gallery — opens fullscreen viewer with
+  // prev/next navigation and Esc/arrow-key support.
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const lightboxOpen = lightboxIndex !== null;
+  const galleryImages = vehicle.images.length > 0 ? vehicle.images : [PLACEHOLDER_IMAGE];
+  const openLightbox = (index: number) => setLightboxIndex(index);
+  const closeLightbox = () => setLightboxIndex(null);
+  const showPrev = () =>
+    setLightboxIndex((i) => (i === null ? null : (i - 1 + galleryImages.length) % galleryImages.length));
+  const showNext = () =>
+    setLightboxIndex((i) => (i === null ? null : (i + 1) % galleryImages.length));
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      else if (e.key === 'ArrowLeft') showPrev();
+      else if (e.key === 'ArrowRight') showNext();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightboxOpen]);
+
   const getVehicleImage = (index: number) => {
     if (imageErrors.has(index) || !vehicle.images[index]) {
       return PLACEHOLDER_IMAGE;
@@ -232,7 +256,12 @@ export function BookingSidebar(props: BookingSidebarProps) {
 
             {/* Image Gallery */}
             <div className="flex gap-2">
-              <div className="relative aspect-[4/3] flex-1 overflow-hidden rounded-lg">
+              <button
+                type="button"
+                onClick={() => openLightbox(mainImage)}
+                className="relative aspect-[4/3] flex-1 overflow-hidden rounded-lg focus:outline-none"
+                aria-label="View image"
+              >
                 <Image
                   src={getVehicleImage(mainImage)}
                   alt={vehicle.name}
@@ -240,26 +269,63 @@ export function BookingSidebar(props: BookingSidebarProps) {
                   className="object-cover"
                   onError={() => handleImageError(mainImage)}
                 />
-              </div>
-              <div className="flex w-24 flex-col gap-2">
-                {(vehicle.images.length > 0 ? vehicle.images.slice(0, 3) : [PLACEHOLDER_IMAGE]).map((img, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => setMainImage(index)}
-                    className={`relative aspect-[4/3] overflow-hidden rounded-lg ${
-                      mainImage === index ? 'ring-2 ring-primary' : ''
-                    }`}
-                  >
-                    <Image
-                      src={getVehicleImage(index)}
-                      alt={`${vehicle.name} ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      onError={() => handleImageError(index)}
-                    />
-                  </button>
-                ))}
+              </button>
+              <div className="flex w-24 flex-col gap-2 self-stretch">
+                {(() => {
+                  const THUMB_COUNT = 3;
+                  const overflow = galleryImages.length > THUMB_COUNT;
+                  // When there are more than 3 images, the 3rd thumb becomes
+                  // the "+N View More" tile (using the 3rd image as backdrop).
+                  const visibleThumbs = overflow
+                    ? galleryImages.slice(0, THUMB_COUNT - 1)
+                    : galleryImages.slice(0, THUMB_COUNT);
+                  const remainingCount = galleryImages.length - (THUMB_COUNT - 1);
+                  return (
+                    <>
+                      {visibleThumbs.map((_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => {
+                            setMainImage(index);
+                            openLightbox(index);
+                          }}
+                          className={`relative flex-1 min-h-0 overflow-hidden rounded-lg ${
+                            mainImage === index ? 'ring-2 ring-primary' : ''
+                          }`}
+                        >
+                          <Image
+                            src={getVehicleImage(index)}
+                            alt={`${vehicle.name} ${index + 1}`}
+                            fill
+                            className="object-cover"
+                            onError={() => handleImageError(index)}
+                          />
+                        </button>
+                      ))}
+                      {overflow && (
+                        <button
+                          type="button"
+                          onClick={() => openLightbox(THUMB_COUNT - 1)}
+                          className="relative flex-1 min-h-0 overflow-hidden rounded-lg focus:outline-none"
+                          aria-label={`View all ${galleryImages.length} images`}
+                        >
+                          <Image
+                            src={getVehicleImage(THUMB_COUNT - 1)}
+                            alt="View more"
+                            fill
+                            className="object-cover"
+                            onError={() => handleImageError(THUMB_COUNT - 1)}
+                          />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/55 text-white">
+                            <span className="text-sm font-semibold leading-none">+{remainingCount}</span>
+                            <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide">View More</span>
+                          </div>
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -638,6 +704,87 @@ export function BookingSidebar(props: BookingSidebarProps) {
       </div>
         </>
       )}
+
+      {/* Vehicle image lightbox — portaled to <body> so it escapes the
+          sticky-sidebar stacking context (otherwise the page header
+          renders on top of it). */}
+      {lightboxOpen && lightboxIndex !== null && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-100 flex flex-col bg-black/85 p-6"
+              onClick={closeLightbox}
+            >
+              {/* Header: counter + close */}
+              <div className="flex items-center justify-between text-white">
+                <span className="text-sm font-medium">
+                  {lightboxIndex + 1} / {galleryImages.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeLightbox();
+                  }}
+                  aria-label="Close"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Image row */}
+              <div
+                className="flex flex-1 min-h-0 items-center justify-center gap-4 pt-4 md:gap-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {galleryImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      showPrev();
+                    }}
+                    aria-label="Previous"
+                    className="shrink-0 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 transition"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
+
+                <div className="relative flex-1 min-w-0 h-full max-w-4xl">
+                  <Image
+                    src={getVehicleImage(lightboxIndex)}
+                    alt={`${vehicle.name} ${lightboxIndex + 1}`}
+                    fill
+                    sizes="(min-width:768px) 70vw, 90vw"
+                    className="object-contain"
+                  />
+                </div>
+
+                {galleryImages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      showNext();
+                    }}
+                    aria-label="Next"
+                    className="shrink-0 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 transition"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
